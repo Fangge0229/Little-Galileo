@@ -9,16 +9,35 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            TonightView()
+                .tabItem {
+                    Label("今晚", systemImage: "moon.stars.fill")
+                }
+
+            SkyMapView()
+                .tabItem {
+                    Label("星图", systemImage: "star.circle.fill")
+                }
+
+            CardListView()
+                .tabItem {
+                    Label("图鉴", systemImage: "book.fill")
+                }
+
+            CollectionView()
+                .tabItem {
+                    Label("收藏", systemImage: "trophy.fill")
+                }
         }
-        .padding()
+        .tint(Color(hex: "FFD700"))
+        .preferredColorScheme(.dark)
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(StarCatalog())
+        .environmentObject(LocationManager())
+        .environmentObject(CollectionStore())
 }
