@@ -8,7 +8,10 @@ struct SkyMapView: View {
     @State private var centerAzimuth: Double = 0
     @State private var centerAltitude: Double = 45
     @State private var fieldOfView: Double = 90
+    @State private var constellationMode: ConstellationMode = .chinese
     @State private var selectedAsterism: Asterism?
+    @State private var selectedWesternConstellation: WesternConstellation?
+    @State private var tappedStarInfo: TappedStarInfo?
     @State private var dragStartAzimuth: Double = 0
     @State private var dragStartAltitude: Double = 45
     @State private var pinchStartFOV: Double = 90
@@ -18,33 +21,59 @@ struct SkyMapView: View {
             TimelineView(.periodic(from: .now, by: 60)) { timeline in
                 GeometryReader { geometry in
                     ZStack(alignment: .bottom) {
-                        skyCanvas(size: geometry.size, date: timeline.date)
+                        Color(hex: "0A0E27")
                             .ignoresSafeArea()
+
+                        skyCanvas(size: geometry.size, date: timeline.date)
+                            .contentShape(Rectangle())
                             .gesture(dragGesture)
                             .simultaneousGesture(magnificationGesture)
                             .onTapGesture { point in
-                                selectNearestAsterism(at: point, size: geometry.size, date: timeline.date)
+                                handleTap(at: point, size: geometry.size, date: timeline.date)
                             }
 
                         directionOverlay
                             .allowsHitTesting(false)
 
+                        modeOverlay
+
+                        if let tappedStarInfo {
+                            StarTooltip(
+                                starName: tappedStarInfo.starName,
+                                constellation: tappedStarInfo.constellationName ?? constellationMode.description
+                            )
+                            .position(tooltipPosition(for: tappedStarInfo, in: geometry.size))
+                            .transition(.scale(scale: 0.92).combined(with: .opacity))
+                        }
+
                         if let selectedAsterism {
-                            StarInfoPopup(asterism: selectedAsterism) {
+                            StarInfoPopup(
+                                asterism: selectedAsterism,
+                                mode: constellationMode,
+                                westernConstellation: selectedWesternConstellation
+                            ) {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                     self.selectedAsterism = nil
+                                    self.selectedWesternConstellation = nil
                                 }
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("星图")
+            .navigationTitle("小小星官 · 星图")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color(hex: "0A0E27"), for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .onAppear {
                 location.requestLocation()
+            }
+            .onChange(of: constellationMode) { _ in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedAsterism = nil
+                    selectedWesternConstellation = nil
+                    tappedStarInfo = nil
+                }
             }
         }
     }
@@ -56,21 +85,23 @@ struct SkyMapView: View {
             fieldOfView: fieldOfView,
             screenSize: size
         )
-        let positions = AstroMath.calculateVisibleStars(
-            stars: catalog.stars,
+        let referencePositions = AstroMath.calculateVisibleStars(
+            stars: catalog.lineReferenceStars(for: constellationMode),
             latitude: location.latitude,
             longitude: location.longitude,
             date: date,
             minAltitude: -5
         )
-        let positionByHIP = Dictionary(uniqueKeysWithValues: positions.map { ($0.star.hip, $0) })
+        let displayHIPs = Set(catalog.displayStars(for: constellationMode).map(\.hip))
+        let displayPositions = referencePositions.filter { displayHIPs.contains($0.star.hip) }
+        let positionByHIP = Dictionary(uniqueKeysWithValues: referencePositions.map { ($0.star.hip, $0) })
 
         return Canvas { context, canvasSize in
             drawBackground(in: context, size: canvasSize)
             drawHorizon(in: context, projection: projection, size: canvasSize)
-            drawAsterismLines(in: context, projection: projection, positionByHIP: positionByHIP)
-            drawStars(in: context, projection: projection, positions: positions)
-            drawAsterismLabels(in: context, projection: projection, positionByHIP: positionByHIP)
+            drawConstellationLines(in: context, projection: projection, positionByHIP: positionByHIP)
+            drawStars(in: context, projection: projection, positions: displayPositions)
+            drawConstellationLabels(in: context, projection: projection, positionByHIP: positionByHIP)
         }
         .background(Color(hex: "0A0E27"))
     }
@@ -98,7 +129,25 @@ struct SkyMapView: View {
             }
             .onEnded { _ in
                 pinchStartFOV = fieldOfView
+        }
+    }
+
+    private var modeOverlay: some View {
+        VStack {
+            Picker("模式", selection: $constellationMode) {
+                ForEach(ConstellationMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
             }
+            .pickerStyle(.segmented)
+            .frame(width: 176)
+            .padding(8)
+            .background(.ultraThinMaterial)
+            .background(Color(hex: "11183A").opacity(0.62))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.top, 52)
+            Spacer()
+        }
     }
 
     private var directionOverlay: some View {
@@ -165,16 +214,23 @@ struct SkyMapView: View {
         }
     }
 
-    private func drawAsterismLines(
+    private func drawConstellationLines(
         in context: GraphicsContext,
         projection: SkyProjection,
         positionByHIP: [Int: StarPosition]
     ) {
-        for asterism in catalog.allAsterisms() {
-            drawLines(asterism.lines, in: context, projection: projection, positionByHIP: positionByHIP, color: Color(hex: "2A3A5C").opacity(0.4), width: 0.8)
-        }
-        for asterism in catalog.featuredAsterisms() {
-            drawLines(asterism.lines, in: context, projection: projection, positionByHIP: positionByHIP, color: Color(hex: "4A90D9").opacity(0.7), width: 1.5)
+        switch constellationMode {
+        case .chinese:
+            for asterism in catalog.chineseAsterisms() where !asterism.isFeatured {
+                drawLines(asterism.lines, in: context, projection: projection, positionByHIP: positionByHIP, color: Color(hex: "2A3A5C").opacity(0.42), width: 0.8)
+            }
+            for asterism in catalog.featuredAsterisms() {
+                drawLines(asterism.lines, in: context, projection: projection, positionByHIP: positionByHIP, color: Color(hex: "4A90D9").opacity(0.78), width: 1.5)
+            }
+        case .western:
+            for constellation in catalog.westernConstellations() {
+                drawLines(constellation.lines, in: context, projection: projection, positionByHIP: positionByHIP, color: Color(hex: "4AC6D9").opacity(0.7), width: 1.2)
+            }
         }
     }
 
@@ -200,52 +256,154 @@ struct SkyMapView: View {
         }
     }
 
-    private func drawAsterismLabels(
+    private func drawConstellationLabels(
         in context: GraphicsContext,
         projection: SkyProjection,
         positionByHIP: [Int: StarPosition]
     ) {
-        for asterism in catalog.featuredAsterisms() {
-            let points = asterism.stars.compactMap { hip -> CGPoint? in
-                guard let position = positionByHIP[hip] else { return nil }
-                return projection.project(azimuth: position.azimuth, altitude: position.altitude)
+        var occupied: [CGRect] = []
+        switch constellationMode {
+        case .chinese:
+            let asterisms = catalog.chineseAsterisms().sorted {
+                if $0.isFeatured != $1.isFeatured { return $0.isFeatured && !$1.isFeatured }
+                return ($0.rank ?? 3) < ($1.rank ?? 3)
             }
-            guard !points.isEmpty else { continue }
-            let center = CGPoint(
-                x: points.map(\.x).reduce(0, +) / CGFloat(points.count),
-                y: points.map(\.y).reduce(0, +) / CGFloat(points.count)
-            )
-            let text = Text(asterism.name)
-                .font(.caption.bold())
-                .foregroundColor(Color(hex: "FFD700"))
-            context.draw(text, at: center)
+            for asterism in asterisms where shouldShowChineseLabel(for: asterism) {
+                guard let center = labelCenter(for: asterism.stars, projection: projection, positionByHIP: positionByHIP) else { continue }
+                let font: Font = asterism.isFeatured ? .caption.bold() : .caption2
+                let color = asterism.isFeatured ? Color(hex: "FFD700") : Color(hex: "B8C4E0").opacity(0.72)
+                drawLabel(asterism.name, at: center, font: font, color: color, occupied: &occupied, in: context)
+            }
+        case .western:
+            let constellations = catalog.westernConstellations().sorted { ($0.rank ?? 3) < ($1.rank ?? 3) }
+            for constellation in constellations where shouldShowWesternLabel(for: constellation) {
+                guard let center = labelCenter(for: constellation.stars, projection: projection, positionByHIP: positionByHIP) else { continue }
+                drawLabel(constellation.name, at: center, font: .caption.bold(), color: Color(hex: "4AC6D9"), occupied: &occupied, in: context)
+            }
         }
     }
 
-    private func selectNearestAsterism(at point: CGPoint, size: CGSize, date: Date) {
-        let projection = SkyProjection(centerAzimuth: centerAzimuth, centerAltitude: centerAltitude, fieldOfView: fieldOfView, screenSize: size)
-        let positions = AstroMath.calculateVisibleStars(stars: catalog.stars, latitude: location.latitude, longitude: location.longitude, date: date, minAltitude: -5)
-        let positionByHIP = Dictionary(uniqueKeysWithValues: positions.map { ($0.star.hip, $0) })
+    private func labelCenter(
+        for hips: [Int],
+        projection: SkyProjection,
+        positionByHIP: [Int: StarPosition]
+    ) -> CGPoint? {
+        let points = hips.compactMap { hip -> CGPoint? in
+            guard let position = positionByHIP[hip] else { return nil }
+            return projection.project(azimuth: position.azimuth, altitude: position.altitude)
+        }
+        guard !points.isEmpty else { return nil }
+        return CGPoint(
+            x: points.map(\.x).reduce(0, +) / CGFloat(points.count),
+            y: points.map(\.y).reduce(0, +) / CGFloat(points.count)
+        )
+    }
 
-        var closest: (asterism: Asterism, distance: CGFloat)?
-        for asterism in catalog.featuredAsterisms() {
-            for hip in asterism.stars {
-                guard let position = positionByHIP[hip],
-                      let projected = projection.project(azimuth: position.azimuth, altitude: position.altitude) else { continue }
-                let distance = hypot(projected.x - point.x, projected.y - point.y)
-                if distance < 32, closest == nil || distance < closest!.distance {
-                    closest = (asterism, distance)
-                }
+    private func drawLabel(
+        _ value: String,
+        at center: CGPoint,
+        font: Font,
+        color: Color,
+        occupied: inout [CGRect],
+        in context: GraphicsContext
+    ) {
+        let estimatedWidth = CGFloat(max(2, value.count)) * 15
+        let rect = CGRect(x: center.x - estimatedWidth / 2, y: center.y - 10, width: estimatedWidth, height: 20)
+        guard !occupied.contains(where: { $0.intersects(rect.insetBy(dx: -8, dy: -4)) }) else { return }
+        occupied.append(rect)
+        let text = Text(value)
+            .font(font)
+            .foregroundColor(color)
+        context.draw(text, at: center)
+    }
+
+    private func shouldShowChineseLabel(for asterism: Asterism) -> Bool {
+        if asterism.isFeatured { return true }
+        let rank = asterism.rank ?? 3
+        if fieldOfView > 80 { return rank == 1 }
+        if fieldOfView > 50 { return rank <= 2 }
+        return true
+    }
+
+    private func shouldShowWesternLabel(for constellation: WesternConstellation) -> Bool {
+        let rank = constellation.rank ?? 3
+        if fieldOfView > 80 { return rank == 1 }
+        if fieldOfView > 50 { return rank <= 2 }
+        return true
+    }
+
+    private func handleTap(at point: CGPoint, size: CGSize, date: Date) {
+        let projection = SkyProjection(centerAzimuth: centerAzimuth, centerAltitude: centerAltitude, fieldOfView: fieldOfView, screenSize: size)
+        let positions = AstroMath.calculateVisibleStars(stars: catalog.lineReferenceStars(for: constellationMode), latitude: location.latitude, longitude: location.longitude, date: date, minAltitude: -5)
+        let displayHIPs = Set(catalog.displayStars(for: constellationMode).map(\.hip))
+        let tapHitRadius: CGFloat = 22
+
+        var closest: (star: Star, position: CGPoint, distance: CGFloat)?
+        for position in positions where displayHIPs.contains(position.star.hip) {
+            guard let projected = projection.project(azimuth: position.azimuth, altitude: position.altitude) else { continue }
+            let distance = hypot(projected.x - point.x, projected.y - point.y)
+            if distance < tapHitRadius, closest == nil || distance < closest!.distance {
+                closest = (position.star, projected, distance)
             }
         }
 
         if let closest {
-            collection.markViewed(closest.asterism.id)
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                selectedAsterism = closest.asterism
+            let hip = closest.star.hip
+            let starName = catalog.starName(hip: hip, mode: constellationMode) ?? "HIP \(hip)"
+            let constellationName = catalog.constellationName(containing: hip, mode: constellationMode)
+            if let featuredAsterism = catalog.featuredAsterism(containing: hip) {
+                collection.markViewed(featuredAsterism.id)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    tappedStarInfo = nil
+                    selectedAsterism = featuredAsterism
+                    selectedWesternConstellation = constellationMode == .western ? catalog.westernConstellation(containing: hip) : nil
+                }
+            } else {
+                let info = TappedStarInfo(
+                    hip: hip,
+                    starName: starName,
+                    constellationName: constellationName,
+                    screenPosition: closest.position
+                )
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                    selectedAsterism = nil
+                    selectedWesternConstellation = nil
+                    tappedStarInfo = info
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    if tappedStarInfo?.hip == hip {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            tappedStarInfo = nil
+                        }
+                    }
+                }
+            }
+        } else {
+            withAnimation(.easeOut(duration: 0.2)) {
+                tappedStarInfo = nil
+                selectedAsterism = nil
+                selectedWesternConstellation = nil
             }
         }
     }
+
+    private func tooltipPosition(for info: TappedStarInfo, in size: CGSize) -> CGPoint {
+        let xLimit = max(84, size.width - 84)
+        let yLimit = max(96, size.height - 150)
+        return CGPoint(
+            x: min(max(info.screenPosition.x, 84), xLimit),
+            y: min(max(info.screenPosition.y - 48, 82), yLimit)
+        )
+    }
+}
+
+private struct TappedStarInfo: Identifiable {
+    let hip: Int
+    let starName: String
+    let constellationName: String?
+    let screenPosition: CGPoint
+
+    var id: Int { hip }
 }
 
 private extension Double {

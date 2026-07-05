@@ -12,7 +12,7 @@ struct TonightView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         header
-                        Text("今晚的星空")
+                        Text("今晚推荐")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(Color(hex: "FFD700"))
                             .padding(.horizontal, 18)
@@ -37,7 +37,7 @@ struct TonightView: View {
                     .padding(.vertical, 18)
                 }
             }
-            .navigationTitle("今晚")
+            .navigationTitle("小小星官")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .onAppear {
@@ -52,7 +52,7 @@ struct TonightView: View {
                 Text("\(location.cityName) · \(Self.dateText(Date()))")
                     .font(.subheadline)
                     .foregroundStyle(Color(hex: "B8C4E0"))
-                Text("LittleGalileo")
+                Text("小小星官")
                     .font(.title.bold())
                     .foregroundStyle(Color(hex: "FFF8E7"))
             }
@@ -127,16 +127,24 @@ struct TonightView: View {
                     .font(.headline)
                     .foregroundStyle(Color(hex: "FFF8E7"))
                 Spacer()
-                Text("已浏览 \(collection.viewedCount()) / 共 8")
+                Text("已浏览 \(collection.viewedCount()) / 共 \(totalFeatured)")
                     .font(.caption.bold())
                     .foregroundStyle(Color(hex: "B8C4E0"))
             }
-            ProgressView(value: collection.progress())
+            ProgressView(value: progressValue)
                 .tint(Color(hex: "FFD700"))
         }
         .padding(16)
         .background(Color(hex: "1E2140").opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var totalFeatured: Int {
+        max(1, catalog.featuredAsterisms().count)
+    }
+
+    private var progressValue: Double {
+        min(1, Double(collection.viewedCount()) / Double(totalFeatured))
     }
 
     private static func dateText(_ date: Date) -> String {

@@ -2,7 +2,21 @@ import SwiftUI
 
 struct StarInfoPopup: View {
     let asterism: Asterism
+    let mode: ConstellationMode
+    let westernConstellation: WesternConstellation?
     let onClose: () -> Void
+
+    init(
+        asterism: Asterism,
+        mode: ConstellationMode = .chinese,
+        westernConstellation: WesternConstellation? = nil,
+        onClose: @escaping () -> Void
+    ) {
+        self.asterism = asterism
+        self.mode = mode
+        self.westernConstellation = westernConstellation
+        self.onClose = onClose
+    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -13,10 +27,10 @@ struct StarInfoPopup: View {
 
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(asterism.name)
+                    Text(titleText)
                         .font(.title2.bold())
                         .foregroundStyle(Color(hex: "FFF8E7"))
-                    Text("\(asterism.pinyin) · \(asterism.en)")
+                    Text(subtitleText)
                         .font(.caption)
                         .foregroundStyle(Color(hex: "B8C4E0"))
                 }
@@ -30,7 +44,7 @@ struct StarInfoPopup: View {
                 .accessibilityLabel("关闭")
             }
 
-            if let brief = asterism.brief {
+            if let brief = briefText {
                 Text(brief)
                     .font(.body)
                     .foregroundStyle(Color(hex: "FFF8E7"))
@@ -50,7 +64,7 @@ struct StarInfoPopup: View {
             NavigationLink {
                 CardDetailView(asterism: asterism)
             } label: {
-                Label("了解更多", systemImage: "book.pages.fill")
+                Label(buttonTitle, systemImage: "book.pages.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -71,5 +85,61 @@ struct StarInfoPopup: View {
 
     private var difficultyText: String {
         String(repeating: "★", count: max(1, min(3, asterism.difficulty ?? 1)))
+    }
+
+    private var titleText: String {
+        if mode == .western, let westernConstellation {
+            return westernConstellation.name
+        }
+        return asterism.name
+    }
+
+    private var subtitleText: String {
+        if mode == .western, let westernConstellation {
+            return "\(westernConstellation.en) · 对应中国星官：\(asterism.name)"
+        }
+        return "\(asterism.pinyin) · \(asterism.en)"
+    }
+
+    private var briefText: String? {
+        if mode == .western, westernConstellation != nil {
+            return "这颗星也属于中国星官「\(asterism.name)」，可以继续了解它的传统故事。"
+        }
+        return asterism.brief
+    }
+
+    private var buttonTitle: String {
+        mode == .western ? "了解中国星宿故事" : "了解更多"
+    }
+}
+
+struct StarTooltip: View {
+    let starName: String
+    let constellation: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(starName)
+                .font(.headline.bold())
+                .foregroundStyle(Color(hex: "FFF8E7"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(constellation)
+                .font(.caption.bold())
+                .foregroundStyle(Color(hex: "B8C4E0"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(minWidth: 104, maxWidth: 190, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .background(Color(hex: "11183A").opacity(0.9))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 10, y: 6)
     }
 }

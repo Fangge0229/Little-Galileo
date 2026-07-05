@@ -10,7 +10,7 @@ struct CollectionView: View {
                 AppBackground()
                 ScrollView {
                     VStack(spacing: 24) {
-                        Text("我的星空收藏")
+                        Text("小小星官收藏")
                             .font(.title.bold())
                             .foregroundStyle(Color(hex: "FFF8E7"))
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -23,8 +23,8 @@ struct CollectionView: View {
                             }
                         }
 
-                        if collection.viewedCount() == collection.totalFeatured() {
-                            Text("太棒了！你已经认识了 8 个中国星宿！")
+                        if collection.viewedCount() >= totalFeatured {
+                            Text("你已经认识了 \(totalFeatured) 个中国星宿！")
                                 .font(.headline)
                                 .foregroundStyle(Color(hex: "FFD700"))
                                 .padding()
@@ -38,7 +38,7 @@ struct CollectionView: View {
                     .padding(18)
                 }
             }
-            .navigationTitle("收藏")
+            .navigationTitle("小小星官 · 收藏")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
@@ -49,12 +49,12 @@ struct CollectionView: View {
             Circle()
                 .stroke(Color(hex: "3A3A5C"), lineWidth: 16)
             Circle()
-                .trim(from: 0, to: collection.progress())
+                .trim(from: 0, to: progressValue)
                 .stroke(Color(hex: "FFD700"), style: StrokeStyle(lineWidth: 16, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.5), value: collection.progress())
+                .animation(.easeInOut(duration: 0.5), value: progressValue)
             VStack(spacing: 4) {
-                Text("\(collection.viewedCount())/8")
+                Text("\(collection.viewedCount())/\(totalFeatured)")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundStyle(Color(hex: "FFF8E7"))
                 Text("已发现 \(collection.viewedCount()) 个星宿")
@@ -63,6 +63,14 @@ struct CollectionView: View {
             }
         }
         .frame(width: 190, height: 190)
+    }
+
+    private var totalFeatured: Int {
+        max(1, catalog.featuredAsterisms().count)
+    }
+
+    private var progressValue: Double {
+        min(1, Double(collection.viewedCount()) / Double(totalFeatured))
     }
 
     @ViewBuilder

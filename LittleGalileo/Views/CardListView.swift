@@ -36,13 +36,13 @@ struct CardListView: View {
                     }
                     .padding(18)
 
-                    Text("已发现 \(collection.viewedCount())/8 个星宿")
+                    Text("已发现 \(collection.viewedCount())/\(max(1, catalog.featuredAsterisms().count)) 个星宿")
                         .font(.subheadline.bold())
                         .foregroundStyle(Color(hex: "B8C4E0"))
                         .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("星宿图鉴")
+            .navigationTitle("小小星官 · 图鉴")
             .toolbarColorScheme(.dark, for: .navigationBar)
             .alert("先在星图中点击这个星宿吧！", isPresented: $showLockedMessage) {
                 Button("知道了", role: .cancel) {}

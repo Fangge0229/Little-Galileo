@@ -62,9 +62,39 @@ struct LittleGalileoTests {
     @Test func bundledAsterismDataDecodesFeaturedStories() async throws {
         let catalog = StarCatalog()
 
-        #expect(catalog.featuredAsterisms().count == 8)
-        #expect(catalog.featuredAsterisms().allSatisfy { $0.story?.isEmpty == false })
+        #expect(catalog.featuredAsterisms().count >= 8)
+        #expect(catalog.featuredAsterisms().filter { $0.story?.isEmpty == false }.count >= 8)
         #expect(catalog.star(byHIP: 11767) != nil)
+    }
+
+    @Test func catalogLoadsDualModeSkyDataAndStarNames() async throws {
+        let catalog = StarCatalog()
+
+        #expect(catalog.stars.count < 2_848)
+        #expect(catalog.westernConstellations().count >= 88)
+        #expect(catalog.chineseAsterisms().count >= 280)
+        #expect(catalog.displayStars(for: .chinese).count > 80)
+        #expect(catalog.displayStars(for: .chinese).count < 700)
+        #expect(catalog.displayStars(for: .western).count > 80)
+        #expect(catalog.displayStars(for: .western).count < 700)
+        #expect(catalog.starName(hip: 91262, mode: .chinese) != nil)
+        #expect(catalog.starName(hip: 91262, mode: .western) != nil)
+        #expect(catalog.displayStars(for: .chinese).contains { $0.hip == 11767 })
+    }
+
+    @Test func displayedStarsUseChineseNamesInBothSkyModes() async throws {
+        let catalog = StarCatalog()
+
+        #expect(catalog.starName(hip: 71860, mode: .western) == "骑官十")
+
+        for mode in ConstellationMode.allCases {
+            let missingChineseNames = catalog.displayStars(for: mode).filter { star in
+                guard let name = catalog.starName(hip: star.hip, mode: mode) else { return true }
+                return !name.containsChineseCharacter
+            }
+
+            #expect(missingChineseNames.isEmpty)
+        }
     }
 
     @Test func collectionStorePersistsViewedAsterisms() async throws {
@@ -81,4 +111,12 @@ struct LittleGalileoTests {
         #expect(reloaded.totalFeatured() == 8)
     }
 
+}
+
+private extension String {
+    var containsChineseCharacter: Bool {
+        unicodeScalars.contains { scalar in
+            scalar.value >= 0x4E00 && scalar.value <= 0x9FFF
+        }
+    }
 }

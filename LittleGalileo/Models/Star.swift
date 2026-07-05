@@ -7,8 +7,13 @@ struct Star: Codable, Identifiable {
     let mag: Double
     let ci: Double?
     let name: String?
+    var chineseName: String?
 
     var id: Int { hip }
+
+    enum CodingKeys: String, CodingKey {
+        case hip, ra, dec, mag, ci, name
+    }
 }
 
 struct StarPosition: Identifiable {
