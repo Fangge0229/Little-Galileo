@@ -82,6 +82,18 @@ struct LittleGalileoTests {
         #expect(catalog.displayStars(for: .chinese).contains { $0.hip == 11767 })
     }
 
+    @Test func catalogHasStoryMaterialForEveryChineseAsterism() async throws {
+        let catalog = StarCatalog()
+        let asterisms = catalog.chineseAsterisms()
+
+        #expect(asterisms.count == 310)
+        #expect(asterisms.allSatisfy { $0.brief?.isEmpty == false })
+        #expect(asterisms.allSatisfy { $0.story?.isEmpty == false })
+        #expect(asterisms.allSatisfy { $0.science?.isEmpty == false })
+        #expect(asterisms.allSatisfy { $0.storyType?.isEmpty == false })
+        #expect(asterisms.allSatisfy { $0.sourceNotes?.isEmpty == false })
+    }
+
     @Test func displayedStarsUseChineseNamesInBothSkyModes() async throws {
         let catalog = StarCatalog()
 

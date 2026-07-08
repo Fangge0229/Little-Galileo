@@ -163,7 +163,9 @@ final class StarCatalog: ObservableObject {
             story: asterism.story,
             science: asterism.science,
             difficulty: asterism.difficulty,
-            best_season: asterism.best_season
+            best_season: asterism.best_season,
+            storyType: asterism.storyType,
+            sourceNotes: asterism.sourceNotes
         )
     }
 

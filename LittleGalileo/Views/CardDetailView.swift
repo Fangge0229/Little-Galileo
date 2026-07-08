@@ -71,9 +71,9 @@ struct CardDetailView: View {
     private var cardBack: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                section(title: "神话故事", text: asterism.story ?? "暂无故事")
+                section(title: "星官故事", text: asterism.story ?? "这条星官属于传统星官体系，数据校验会补齐它的文化说明。")
                 Divider().overlay(Color.white.opacity(0.25))
-                section(title: "科学知识", text: asterism.science ?? "暂无科学知识")
+                section(title: "科学知识", text: asterism.science ?? "星图数据会显示它在天空中的星点位置和连线。")
                 HStack(spacing: 10) {
                     tag("难度 \(String(repeating: "★", count: max(1, min(3, asterism.difficulty ?? 1))))")
                     tag(asterism.best_season ?? "全年可见")

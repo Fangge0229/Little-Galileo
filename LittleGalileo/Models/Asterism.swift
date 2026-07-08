@@ -14,6 +14,8 @@ struct Asterism: Codable, Identifiable {
     let science: String?
     let difficulty: Int?
     let best_season: String?
+    let storyType: String?
+    let sourceNotes: String?
 
     var isFeatured: Bool { featured ?? false }
     var hasStory: Bool { story?.isEmpty == false }
