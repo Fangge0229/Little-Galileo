@@ -3,30 +3,48 @@ import SwiftUI
 struct CardDetailView: View {
     let asterism: Asterism
     @EnvironmentObject private var collection: CollectionStore
-    @State private var isFlipped = false
 
     var body: some View {
         ZStack {
-            AppBackground()
-            VStack {
-                Spacer(minLength: 24)
-                ZStack {
-                    cardFront
-                        .opacity(isFlipped ? 0 : 1)
-                        .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
-                    cardBack
-                        .opacity(isFlipped ? 1 : 0)
-                        .rotation3DEffect(.degrees(isFlipped ? 0 : -180), axis: (x: 0, y: 1, z: 0))
-                }
-                .frame(maxWidth: 420)
-                .frame(minHeight: 520)
-                .padding(.horizontal, 18)
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        isFlipped.toggle()
+            Color(hex: "1A1D3A")
+                .ignoresSafeArea()
+
+            cloudDecorations
+
+            ScrollView {
+                AncientBorder {
+                    VStack(alignment: .leading, spacing: 20) {
+                        TianZiGeLabel(chinese: asterism.name, pinyin: asterism.pinyin)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 10)
+
+                        Text(asterism.en)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color(hex: "B8C4E0"))
+
+                        if let brief = asterism.brief, !brief.isEmpty {
+                            Text(brief)
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(Color(hex: "FFF8E7"))
+                                .lineSpacing(4)
+                        }
+
+                        section(title: "星官故事", text: asterism.story ?? "数据校验中...")
+
+                        section(title: "科学知识", text: asterism.science ?? "星图数据中...")
+
+                        HStack(spacing: 10) {
+                            tag("难度 \(String(repeating: "★", count: max(1, min(3, asterism.difficulty ?? 1))))")
+                            tag(asterism.best_season ?? "全年可见")
+                            tag("\(asterism.stars.count) 颗星")
+                        }
+                        .padding(.top, 4)
                     }
                 }
-                Spacer(minLength: 24)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 34)
+                .frame(maxWidth: 460)
+                .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle(asterism.name)
@@ -37,64 +55,45 @@ struct CardDetailView: View {
         }
     }
 
-    private var cardFront: some View {
-        VStack(spacing: 22) {
-            Spacer()
-            PinyinLabel(
-                chinese: asterism.name,
-                pinyin: asterism.pinyin,
-                chineseFont: .system(size: 40, weight: .bold),
-                pinyinFont: .headline
-            )
-            Text(asterism.en)
-                .font(.headline)
-                .foregroundStyle(Color(hex: "B8C4E0"))
-            Text("由 \(asterism.stars.count) 颗星组成")
-                .font(.subheadline)
-                .foregroundStyle(Color(hex: "FFD700"))
-            if let brief = asterism.brief {
-                Text(brief)
-                    .font(.title3.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color(hex: "FFF8E7"))
-                    .padding(.horizontal)
-            }
-            Spacer()
-            Text("点击翻转查看故事 →")
-                .font(.footnote.bold())
-                .foregroundStyle(Color(hex: "B8C4E0"))
-        }
-        .padding(26)
-        .background(cardBackground)
-    }
-
-    private var cardBack: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                section(title: "星官故事", text: asterism.story ?? "这条星官属于传统星官体系，数据校验会补齐它的文化说明。")
-                Divider().overlay(Color.white.opacity(0.25))
-                section(title: "科学知识", text: asterism.science ?? "星图数据会显示它在天空中的星点位置和连线。")
-                HStack(spacing: 10) {
-                    tag("难度 \(String(repeating: "★", count: max(1, min(3, asterism.difficulty ?? 1))))")
-                    tag(asterism.best_season ?? "全年可见")
+    private var cloudDecorations: some View {
+        ZStack {
+            VStack {
+                HStack {
+                    Spacer()
+                    Image("cloud_pattern")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 128)
+                        .opacity(0.34)
                 }
-                .padding(.top, 4)
+                Spacer()
             }
-            .padding(24)
-        }
-        .background(cardBackground)
-    }
+            .padding(.top, 18)
+            .padding(.trailing, 8)
 
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 24)
-            .fill(Color(hex: "1E2140").opacity(0.96))
-            .shadow(color: .black.opacity(0.35), radius: 18, y: 12)
+            VStack {
+                Spacer()
+                HStack {
+                    Image("cloud_pattern")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 140)
+                        .scaleEffect(x: -1, y: -1)
+                        .opacity(0.3)
+                    Spacer()
+                }
+            }
+            .padding(.leading, -8)
+            .padding(.bottom, 10)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     private func section(title: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.headline)
+                .font(.headline.weight(.bold))
                 .foregroundStyle(Color(hex: "FFD700"))
             Text(text)
                 .font(.body)
@@ -109,7 +108,7 @@ struct CardDetailView: View {
             .foregroundStyle(Color(hex: "FFD700"))
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .background(Color(hex: "0A0E27").opacity(0.65))
+            .background(Color(hex: "1A1D3A").opacity(0.72))
             .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

@@ -89,6 +89,63 @@ struct SkyProjection {
     }
 }
 
+struct SkyBackgroundProjection {
+    struct Layout: Equatable {
+        let tileWidth: CGFloat
+        let tileHeight: CGFloat
+        let offset: CGSize
+        let scale: CGFloat
+    }
+
+    static func layout(
+        centerAzimuth: Double,
+        centerAltitude: Double,
+        fieldOfView: Double,
+        screenSize: CGSize
+    ) -> Layout {
+        let safeFOV = max(30.0, min(120.0, fieldOfView))
+        let zoomScale = CGFloat(max(1.35, min(4.0, 135.0 / safeFOV)))
+        let tileHeight = max(screenSize.height * zoomScale, screenSize.width * zoomScale / 2.0)
+        let tileWidth = tileHeight * 2.0
+        let azimuth = positiveDegrees(centerAzimuth)
+        let horizontalOffset = tileWidth * CGFloat(0.5 - azimuth / 360.0)
+        let maxVerticalOffset = max(0, (tileHeight - screenSize.height) / 2.0)
+        let minAltitude = -10.0
+        let maxAltitude = 90.0
+        let clampedAltitude = min(max(centerAltitude, minAltitude), maxAltitude)
+        let altitudeMidpoint = (minAltitude + maxAltitude) / 2.0
+        let altitudeHalfRange = (maxAltitude - minAltitude) / 2.0
+        let verticalOffset = maxVerticalOffset * CGFloat((clampedAltitude - altitudeMidpoint) / altitudeHalfRange)
+
+        return Layout(
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            offset: CGSize(width: horizontalOffset, height: verticalOffset),
+            scale: zoomScale
+        )
+    }
+
+    private static func positiveDegrees(_ degrees: Double) -> Double {
+        let value = degrees.truncatingRemainder(dividingBy: 360.0)
+        return value >= 0 ? value : value + 360.0
+    }
+}
+
+struct SkyMapVisualStyle {
+    static let bottomSurfaceHex = "13175A"
+    static let appBackgroundHex = bottomSurfaceHex
+    static let tabBarBackgroundHex = bottomSurfaceHex
+    static let tonightBackdropHex = "071A3D"
+    static let tonightBackdropOpacity = 0.72
+    static let aiButtonBackgroundHex = "071A3D"
+    static let aiButtonStrokeHex = "1D4F8F"
+    static let aiButtonImagePadding: CGFloat = 6
+    static let bottomControlBackdropHeightRatio: CGFloat = 0.22
+    static let bottomControlBackdropMinHeight: CGFloat = 142
+    static let bottomControlBackdropTopOpacity = 0.08
+    static let bottomControlBackdropOpacity = 0.82
+}
+
 func starRadius(magnitude: Double) -> CGFloat {
     let clamped = max(-1.5, min(5.5, magnitude))
     let normalized = (5.5 - clamped) / 7.0

@@ -2,3 +2,7 @@ temp/
 DerivedData/
 build/
 .DS_Store
+*.xcuserdata
+xcuserdata/
+LittleGalileo/AIProviderConfig.local.json
+*.local.json
