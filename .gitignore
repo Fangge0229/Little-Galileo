@@ -4,5 +4,6 @@ build/
 .DS_Store
 *.xcuserdata
 xcuserdata/
+docs/superpowers/
 LittleGalileo/AIProviderConfig.local.json
 *.local.json
