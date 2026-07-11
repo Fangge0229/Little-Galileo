@@ -18,12 +18,14 @@ A children's astronomy education app that brings traditional Chinese star lore t
 
 ### Tonight's Picks
 - Shows which featured asterisms are visible from your location right now
-- Horizontally scrollable cards with constellation line preview, compass bearing, altitude, and difficulty rating
+- Horizontally scrollable cards with reusable asterism line previews, compass bearing, altitude, and difficulty rating
 
 ### Card Collection
 - Collect asterism cards by exploring them on the sky map
-- Progress ring tracks your collection (8 featured asterisms)
-- Detail pages with cultural stories, science facts, pinyin, and a traditional Chinese scroll aesthetic
+- Progress ring tracks 38 featured Chinese asterisms
+- Category filters for starter asterisms, the Twenty-Eight Mansions, artifact/building asterisms, and mythical figures
+- Expandable cards with custom icons, child-friendly names, pinyin, cultural context, science facts, and asterism shape previews
+- Detail pages with a traditional Chinese scroll aesthetic, lore, metadata tags, and larger star-line shape diagrams
 
 ### AI Sky Assistant
 - Chat with an AI tutor designed for ages 6-12
@@ -93,12 +95,13 @@ LittleGalileo/
 ├── Models/          Data models (Star, Asterism, ChatMessage, etc.)
 ├── Views/           SwiftUI views (SkyMap, Cards, Chat, Onboarding)
 ├── Services/        Business logic (AstroMath, StarCatalog, ChatService, etc.)
-└── Assets.xcassets/ Images (star bird, sky background, decorative art)
+└── Assets.xcassets/ Images (star bird, sky background, decorative art, asterism icons)
 ```
 
 **Key design choices:**
 
 - **Pure SwiftUI** — Canvas API for star rendering, preference keys for cross-view coordination
+- **Reusable asterism previews** — shared `AsterismLinePreview` draws star points, connecting lines, single-star glow, and icon fallbacks
 - **Real astronomy math** — Julian day, GMST, equatorial-to-horizontal coordinate conversion, stereographic projection
 - **No third-party dependencies** — uses only Apple frameworks (CoreLocation, Speech, AVFoundation)
 - **Protocol-based AI layer** — `ChatServing` protocol allows easy provider switching and test stubbing
@@ -113,7 +116,7 @@ LittleGalileo/
 | Western constellations | 89 | IAU standard |
 | Stars | 1,469 (filtered) / 2,848 (full) | HIP catalog |
 | Chinese star names | 3,062 | Historical records |
-| Featured asterisms | 8 | With complete story and science content |
+| Featured asterisms | 38 | With child titles, category metadata, icons, lore, story, and science content |
 
 ---
 
@@ -127,8 +130,8 @@ xcodebuild test -scheme LittleGalileo -destination 'platform=iOS Simulator,name=
 xcodebuild test -scheme LittleGalileo -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:LittleGalileoUITests
 ```
 
-- **26+ unit tests** — astronomy math, data integrity (all 310 asterisms have complete content), AI service, collection persistence, onboarding state machine
-- **10 UI tests** — full onboarding flow, spotlight pixel-alignment verification, tonight recommendation panel, chat panel interaction
+- **38 unit tests** — astronomy math, data integrity, reusable asterism previews, visual assets, AI service, collection persistence, onboarding state machine
+- **12 UI tests** — full onboarding flow, spotlight pixel-alignment verification, tonight recommendation panel, card collection browsing, chat panel interaction
 
 ---
 

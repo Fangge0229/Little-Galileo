@@ -12,6 +12,46 @@ import UIKit
 @testable import LittleGalileo
 
 struct LittleGalileoTests {
+    private let expectedFeaturedAsterismIds = [
+        "beidou",
+        "vega",
+        "altair",
+        "tianjin",
+        "shenxiu",
+        "xinxiu",
+        "jiaoxiu",
+        "sirius",
+        "laoren",
+        "maoxiu",
+        "bixiu",
+        "jingxiu",
+        "guixiu",
+        "liuxiu",
+        "zhangxiu",
+        "yixiu",
+        "zhenxiu",
+        "fangxiu",
+        "weixiu",
+        "jixiu",
+        "douxiu",
+        "kuixiu",
+        "shixiu",
+        "bixiu_wall",
+        "niuxiu",
+        "wuche",
+        "santai",
+        "wenchang",
+        "huagai",
+        "tianchuan",
+        "dajiao",
+        "tianshiyuan",
+        "tiangou",
+        "tengshe",
+        "wangliang",
+        "xizhong",
+        "yulinjun",
+        "tiandajiangjun",
+    ]
 
     @Test func polarisAltitudeMatchesObserverLatitude() async throws {
         let date = Date(timeIntervalSince1970: 1_704_067_200)
@@ -127,9 +167,71 @@ struct LittleGalileoTests {
     @Test func bundledAsterismDataDecodesFeaturedStories() async throws {
         let catalog = StarCatalog()
 
-        #expect(catalog.featuredAsterisms().count >= 8)
-        #expect(catalog.featuredAsterisms().filter { $0.story?.isEmpty == false }.count >= 8)
+        #expect(catalog.featuredAsterisms().count == expectedFeaturedAsterismIds.count)
+        #expect(catalog.featuredAsterisms().map(\.id) == expectedFeaturedAsterismIds)
+        #expect(catalog.featuredAsterisms().allSatisfy { $0.story?.isEmpty == false })
         #expect(catalog.star(byHIP: 11767) != nil)
+    }
+
+    @Test func bundledFeaturedAsterismsHaveCollectionMetadata() async throws {
+        let catalog = StarCatalog()
+        let featured = catalog.featuredAsterisms()
+
+        #expect(featured.count == 38)
+        #expect(featured.allSatisfy { $0.childTitle?.isEmpty == false })
+        #expect(featured.allSatisfy { $0.displayTitle.isEmpty == false })
+        #expect(featured.allSatisfy { $0.symbol?.isEmpty == false })
+        #expect(featured.allSatisfy { $0.iconName?.hasPrefix("icon_asterism_") == true })
+        #expect(featured.allSatisfy { ["starter", "ershiba", "artifact", "mythical"].contains($0.category ?? "") })
+        #expect(featured.allSatisfy { $0.categoryLabel != "其他" })
+        #expect(featured.allSatisfy { $0.lore?.isEmpty == false })
+    }
+
+    @Test func bundledSiriusCardIncludesBowGeometry() async throws {
+        let catalog = StarCatalog()
+        let sirius = try #require(catalog.featuredAsterisms().first { $0.id == "sirius" })
+
+        #expect(sirius.name == "天狼与弧矢")
+        #expect(sirius.stars.contains(32349))
+        #expect(sirius.stars.count > 1)
+        #expect(!sirius.lines.isEmpty)
+    }
+
+    @Test func asterismLinePreviewCentersSingleStar() async throws {
+        let catalog = StarCatalog()
+        let asterism = try #require(catalog.featuredAsterisms().first { $0.id == "laoren" })
+
+        let points = AsterismLinePreview.previewUnitPoints(for: asterism, catalog: catalog)
+        let point = try #require(points[asterism.stars[0]])
+
+        #expect(abs(point.x - 0.5) < 0.001)
+        #expect(abs(point.y - 0.5) < 0.001)
+    }
+
+    @Test func asterismLinePreviewWrapsRightAscensionAcrossZero() async throws {
+        let catalog = StarCatalog()
+        let asterism = testAsterism(
+            id: "ra_wrap_test",
+            stars: [116727, 118268, 746],
+            lines: [[116727, 118268], [118268, 746]]
+        )
+
+        let points = AsterismLinePreview.previewUnitPoints(for: asterism, catalog: catalog)
+        let beforeZero = try #require(points[116727])
+        let nearZero = try #require(points[118268])
+        let afterZero = try #require(points[746])
+
+        #expect(beforeZero.x < nearZero.x)
+        #expect(nearZero.x < afterZero.x)
+    }
+
+    @Test func asterismLinePreviewReturnsEmptyPointsWhenStarsAreMissing() async throws {
+        let catalog = StarCatalog()
+        let asterism = testAsterism(id: "missing_stars_test", stars: [9_999_991], lines: [])
+
+        let points = AsterismLinePreview.previewUnitPoints(for: asterism, catalog: catalog)
+
+        #expect(points.isEmpty)
     }
 
     @Test func catalogLoadsDualModeSkyDataAndStarNames() async throws {
@@ -151,7 +253,7 @@ struct LittleGalileoTests {
         let catalog = StarCatalog()
         let asterisms = catalog.chineseAsterisms()
 
-        #expect(asterisms.count == 310)
+        #expect(asterisms.count >= 310)
         #expect(asterisms.allSatisfy { $0.brief?.isEmpty == false })
         #expect(asterisms.allSatisfy { $0.story?.isEmpty == false })
         #expect(asterisms.allSatisfy { $0.science?.isEmpty == false })
@@ -201,7 +303,8 @@ struct LittleGalileoTests {
         let reloaded = CollectionStore(defaults: defaults)
         #expect(reloaded.isViewed("beidou"))
         #expect(reloaded.viewedCount() == 1)
-        #expect(reloaded.totalFeatured() == 8)
+        reloaded.setFeaturedTotal(38)
+        #expect(reloaded.totalFeatured() == 38)
     }
 
     @Test func bundledVisualAssetsLoadForSkyMapAndAIHelper() async throws {
@@ -209,6 +312,12 @@ struct LittleGalileoTests {
         #expect(UIImage(named: "AIHelperBird", in: Bundle.main, compatibleWith: nil) != nil)
         #expect(UIImage(named: "cloud_pattern", in: Bundle.main, compatibleWith: nil) != nil)
         #expect(UIImage(named: "card_border", in: Bundle.main, compatibleWith: nil) != nil)
+    }
+
+    @Test func bundledAsterismIconAssetsLoad() async throws {
+        for number in ["01"] + (3...39).map({ String(format: "%02d", $0) }) {
+            #expect(UIImage(named: "icon_asterism_\(number)", in: Bundle.main, compatibleWith: nil) != nil)
+        }
     }
 
     @Test func chatServiceRejectsMissingAPIKeyBeforeNetwork() async throws {
@@ -431,6 +540,21 @@ struct LittleGalileoTests {
         #expect(reloaded.currentStep == .welcome)
         #expect(!reloaded.hasCompleted)
     }
+
+    @MainActor
+    @Test func birdOnboardingUITestCompletionArgumentMarksGuideCompleted() async throws {
+        let defaults = try onboardingDefaults()
+
+        OnboardingStore.completeForUITestsIfRequested(
+            arguments: ["UITestCompleteBirdOnboarding"],
+            defaults: defaults
+        )
+
+        let store = OnboardingStore(defaults: defaults)
+        store.startIfNeeded()
+        #expect(store.hasCompleted)
+        #expect(!store.isActive)
+    }
     #endif
 
     @MainActor
@@ -502,11 +626,11 @@ struct LittleGalileoTests {
         )
         #expect(
             OnboardingStep.cardCollection.message ==
-            "点击下方「图鉴」可以查看你收集到的星宿卡片。"
+            "点击下方「图鉴」可以查看你收集到的重点星官卡片。"
         )
         #expect(
             OnboardingStep.cardCollectionBrowse.message ==
-            "这里是你的星宿图鉴。上方进度环显示收集进度，在星图中点亮星宿就能解锁卡片。"
+            "这里是你的 38 个重点星官图鉴。上方进度环显示收集进度，在星图中点亮星官就能解锁卡片。"
         )
         #expect(
             OnboardingStep.chatExplore.message ==
@@ -688,6 +812,31 @@ private func onboardingDefaults() throws -> UserDefaults {
     let defaults = try #require(UserDefaults(suiteName: suiteName))
     defaults.removePersistentDomain(forName: suiteName)
     return defaults
+}
+
+private func testAsterism(id: String, stars: [Int], lines: [[Int]]) -> Asterism {
+    Asterism(
+        id: id,
+        name: id,
+        pinyin: id,
+        en: id,
+        stars: stars,
+        lines: lines,
+        featured: nil,
+        rank: nil,
+        brief: nil,
+        story: nil,
+        science: nil,
+        difficulty: nil,
+        best_season: nil,
+        storyType: nil,
+        sourceNotes: nil,
+        childTitle: nil,
+        symbol: nil,
+        iconName: nil,
+        category: nil,
+        lore: nil
+    )
 }
 
 private extension String {

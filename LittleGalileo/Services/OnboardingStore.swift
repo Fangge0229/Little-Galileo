@@ -24,6 +24,14 @@ final class OnboardingStore: ObservableObject {
         guard arguments.contains("UITestResetBirdOnboarding") else { return }
         resetCompletionForDebugLaunch(defaults: defaults)
     }
+
+    static func completeForUITestsIfRequested(
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        defaults: UserDefaults = .standard
+    ) {
+        guard arguments.contains("UITestCompleteBirdOnboarding") else { return }
+        defaults.set(true, forKey: completionKey)
+    }
     #endif
 
     var hasCompleted: Bool {
@@ -129,9 +137,9 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
         case .tonightBrowse:
             return "左右滑动可以查看今晚推荐的星宿。看完后点击空白处或关闭按钮退出推荐面板。"
         case .cardCollection:
-            return "点击下方「图鉴」可以查看你收集到的星宿卡片。"
+            return "点击下方「图鉴」可以查看你收集到的重点星官卡片。"
         case .cardCollectionBrowse:
-            return "这里是你的星宿图鉴。上方进度环显示收集进度，在星图中点亮星宿就能解锁卡片。"
+            return "这里是你的 38 个重点星官图鉴。上方进度环显示收集进度，在星图中点亮星官就能解锁卡片。"
         case .assistantEntry:
             return "遇到不懂的星名、故事或观测方法，可以点我提问。"
         case .chatExplore:

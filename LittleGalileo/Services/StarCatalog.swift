@@ -27,7 +27,7 @@ final class StarCatalog: ObservableObject {
     }
 
     func featuredAsterisms() -> [Asterism] {
-        chineseData.asterisms.filter(\.isFeatured)
+        Self.sortedFeatured(chineseData.asterisms.filter(\.isFeatured))
     }
 
     func allAsterisms() -> [Asterism] {
@@ -102,7 +102,7 @@ final class StarCatalog: ObservableObject {
         do {
             chineseData = try Self.decode(ChineseAsterismData.self, fileName: "chinese_asterisms", in: bundle)
             asterismData = AsterismData(
-                featured: chineseData.asterisms.filter(\.isFeatured),
+                featured: Self.sortedFeatured(chineseData.asterisms.filter(\.isFeatured)),
                 all: chineseData.asterisms.filter { !$0.isFeatured }
             )
             print("Loaded \(chineseData.asterisms.count) Chinese asterisms")
@@ -165,7 +165,12 @@ final class StarCatalog: ObservableObject {
             difficulty: asterism.difficulty,
             best_season: asterism.best_season,
             storyType: asterism.storyType,
-            sourceNotes: asterism.sourceNotes
+            sourceNotes: asterism.sourceNotes,
+            childTitle: asterism.childTitle,
+            symbol: asterism.symbol,
+            iconName: asterism.iconName,
+            category: asterism.category,
+            lore: asterism.lore
         )
     }
 
@@ -207,6 +212,16 @@ final class StarCatalog: ObservableObject {
         }
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(type, from: data)
+    }
+
+    private static func sortedFeatured(_ asterisms: [Asterism]) -> [Asterism] {
+        asterisms.sorted { lhs, rhs in
+            featuredSortKey(lhs) < featuredSortKey(rhs)
+        }
+    }
+
+    private static func featuredSortKey(_ asterism: Asterism) -> String {
+        asterism.iconName ?? "zz_\(asterism.name)"
     }
 }
 

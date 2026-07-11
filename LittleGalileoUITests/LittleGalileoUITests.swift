@@ -114,6 +114,7 @@ final class LittleGalileoUITests: XCTestCase {
     @MainActor
     func testChatPanelShowsSpeechInputButton() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["UITestCompleteBirdOnboarding"]
         app.launch()
         dismissBirdOnboardingIfVisible(in: app)
 
@@ -176,7 +177,7 @@ final class LittleGalileoUITests: XCTestCase {
         app.buttons["下一步"].tap()
 
         XCTAssertTrue(
-            app.staticTexts["点击下方「图鉴」可以查看你收集到的星宿卡片。"]
+            app.staticTexts["点击下方「图鉴」可以查看你收集到的重点星官卡片。"]
                 .waitForExistence(timeout: 2),
             "今晚推荐浏览后应该出现图鉴教学步骤"
         )
@@ -346,7 +347,7 @@ final class LittleGalileoUITests: XCTestCase {
             "图鉴入口步骤点下一步后应该自动切到图鉴页"
         )
         XCTAssertTrue(
-            app.staticTexts["这里是你的星宿图鉴。上方进度环显示收集进度，在星图中点亮星宿就能解锁卡片。"]
+            app.staticTexts["这里是你的 38 个重点星官图鉴。上方进度环显示收集进度，在星图中点亮星官就能解锁卡片。"]
                 .waitForExistence(timeout: 2),
             "自动切到图鉴页后应该出现图鉴浏览教学"
         )

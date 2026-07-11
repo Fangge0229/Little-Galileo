@@ -20,6 +20,7 @@ struct LittleGalileoApp: App {
         #if DEBUG
         OnboardingStore.resetCompletionForDebugLaunch()
         OnboardingStore.resetCompletionForUITestsIfRequested()
+        OnboardingStore.completeForUITestsIfRequested()
         #endif
     }
 
@@ -47,6 +48,9 @@ private struct AppRootView: View {
 
     var body: some View {
         configuredContentView()
+            .onAppear {
+                collection.setFeaturedTotal(catalog.featuredAsterisms().count)
+            }
     }
 
     private func configuredContentView() -> AnyView {

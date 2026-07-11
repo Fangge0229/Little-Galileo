@@ -5,6 +5,7 @@ final class CollectionStore: ObservableObject {
 
     private let defaults: UserDefaults
     private let key = "viewedAsterisms"
+    private var featuredTotal = 38
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -25,8 +26,12 @@ final class CollectionStore: ObservableObject {
         viewedAsterisms.count
     }
 
+    func setFeaturedTotal(_ total: Int) {
+        featuredTotal = max(0, total)
+    }
+
     func totalFeatured() -> Int {
-        8
+        featuredTotal
     }
 
     func progress() -> Double {
